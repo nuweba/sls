@@ -149,7 +149,11 @@ func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
 
 func (w *Wrapper) DeployStack() error {
 
-	err := w.buildJava()
+	err := w.buildJava("java8")
+	if err != nil {
+		return err
+	}
+	err = w.buildJava("java11")
 	if err != nil {
 		return err
 	}
@@ -165,8 +169,8 @@ func (w *Wrapper) DeployStack() error {
 	return err
 }
 
-func (w *Wrapper) buildJava() error {
-	javaPath, javaInStack, err := w.platformPath("java8")
+func (w *Wrapper) buildJava(version string) error {
+	javaPath, javaInStack, err := w.platformPath(version)
 	if err != nil {
 		return err
 	}
