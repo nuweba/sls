@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -46,6 +47,7 @@ type Wrapper struct {
 	slsPath     string
 	yamlDirPath string
 	stack       *ServiceStack
+	timestamp   string
 }
 
 func New(provider string, yamlDirPath string) (*Wrapper, error) {
@@ -60,7 +62,9 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 		return nil, err
 	}
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack}, nil
+	timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, timestamp: timestamp}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -87,11 +91,16 @@ func ParseConfig(provider string, yamlDirPath string) (*ServiceStack, error) {
 }
 
 func (w *Wrapper) ListFunctionsFromYaml() Functions {
-	return w.stack.Functions
+	functions := make(map[string]FunctionMeta)
+	for k, v := range w.stack.Functions {
+		v.Name = strings.Replace(v.Name, "${opt:timestamp}", w.timestamp, -1)
+		functions[k] = v
+	}
+	return functions
 }
 
 func (w *Wrapper) StackId() string {
-	return w.stack.StackId
+	return strings.Replace(w.stack.StackId, "-${opt:timestamp}", "", -1)
 }
 
 func (w *Wrapper) Project() string {
@@ -137,6 +146,9 @@ func (w *Wrapper) execCmd(env []string, dir string, command string, cmdArgs ...s
 }
 
 func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
+	slsCmd = append(slsCmd, "--timestamp")
+	slsCmd = append(slsCmd, w.timestamp)
+
 	retries := slsRetries
 	resp, err := w.execCmd([]string{}, funcDir, "sls", slsCmd...)
 	for err != nil && retries > 0 {
