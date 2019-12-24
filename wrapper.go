@@ -47,7 +47,7 @@ type Wrapper struct {
 	slsPath     string
 	yamlDirPath string
 	stack       *ServiceStack
-	timestamp   string
+	suffix      string
 }
 
 func New(provider string, yamlDirPath string) (*Wrapper, error) {
@@ -57,14 +57,21 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 	}
 
 	stack, err := ParseConfig(provider, yamlDirPath)
-
 	if err != nil {
 		return nil, err
 	}
 
-	timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
+	suffix := strconv.FormatInt(time.Now().UnixNano(), 10)
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, timestamp: timestamp}, nil
+	functions := make(map[string]FunctionMeta)
+	for k, v := range stack.Functions {
+		v.Name = strings.Replace(v.Name, "${opt:suffix}", suffix, -1)
+		functions[k] = v
+	}
+
+	stack.Functions = functions
+
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -91,16 +98,11 @@ func ParseConfig(provider string, yamlDirPath string) (*ServiceStack, error) {
 }
 
 func (w *Wrapper) ListFunctionsFromYaml() Functions {
-	functions := make(map[string]FunctionMeta)
-	for k, v := range w.stack.Functions {
-		v.Name = strings.Replace(v.Name, "${opt:timestamp}", w.timestamp, -1)
-		functions[k] = v
-	}
-	return functions
+	return w.stack.Functions
 }
 
 func (w *Wrapper) StackId() string {
-	return strings.Replace(w.stack.StackId, "-${opt:timestamp}", "", -1)
+	return strings.Replace(w.stack.StackId, "-${opt:suffix}", "", -1)
 }
 
 func (w *Wrapper) Project() string {
@@ -146,8 +148,8 @@ func (w *Wrapper) execCmd(env []string, dir string, command string, cmdArgs ...s
 }
 
 func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
-	slsCmd = append(slsCmd, "--timestamp")
-	slsCmd = append(slsCmd, w.timestamp)
+	slsCmd = append(slsCmd, "--suffix")
+	slsCmd = append(slsCmd, w.suffix)
 
 	retries := slsRetries
 	resp, err := w.execCmd([]string{}, funcDir, "sls", slsCmd...)
