@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -46,6 +47,7 @@ type Wrapper struct {
 	slsPath     string
 	yamlDirPath string
 	stack       *ServiceStack
+	suffix      string
 }
 
 func New(provider string, yamlDirPath string) (*Wrapper, error) {
@@ -55,12 +57,21 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 	}
 
 	stack, err := ParseConfig(provider, yamlDirPath)
-
 	if err != nil {
 		return nil, err
 	}
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack}, nil
+	suffix := strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	functions := make(map[string]FunctionMeta)
+	for k, v := range stack.Functions {
+		v.Name = strings.Replace(v.Name, "${opt:suffix}", suffix, -1)
+		functions[k] = v
+	}
+
+	stack.Functions = functions
+
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -91,7 +102,7 @@ func (w *Wrapper) ListFunctionsFromYaml() Functions {
 }
 
 func (w *Wrapper) StackId() string {
-	return w.stack.StackId
+	return strings.Replace(w.stack.StackId, "-${opt:suffix}", "", -1)
 }
 
 func (w *Wrapper) Project() string {
@@ -137,6 +148,9 @@ func (w *Wrapper) execCmd(env []string, dir string, command string, cmdArgs ...s
 }
 
 func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
+	slsCmd = append(slsCmd, "--suffix")
+	slsCmd = append(slsCmd, w.suffix)
+
 	retries := slsRetries
 	resp, err := w.execCmd([]string{}, funcDir, "sls", slsCmd...)
 	for err != nil && retries > 0 {
