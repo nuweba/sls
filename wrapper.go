@@ -72,7 +72,7 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 
 	stack.Functions = functions
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix}, nil
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix, Opts: make(map[string]string)}, nil
 }
 
 func getSLSPath() (string, error) {
