@@ -48,6 +48,7 @@ type Wrapper struct {
 	yamlDirPath string
 	stack       *ServiceStack
 	suffix      string
+	Opts        map[string]string
 }
 
 func New(provider string, yamlDirPath string) (*Wrapper, error) {
@@ -71,7 +72,7 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 
 	stack.Functions = functions
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix}, nil
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix, Opts: make(map[string]string)}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -150,6 +151,11 @@ func (w *Wrapper) execCmd(env []string, dir string, command string, cmdArgs ...s
 func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
 	slsCmd = append(slsCmd, "--suffix")
 	slsCmd = append(slsCmd, w.suffix)
+
+	for opt, optVal := range w.Opts {
+		slsCmd = append(slsCmd, "--"+opt)
+		slsCmd = append(slsCmd, optVal)
+	}
 
 	retries := slsRetries
 	resp, err := w.execCmd([]string{}, funcDir, "sls", slsCmd...)
