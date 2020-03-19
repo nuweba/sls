@@ -185,7 +185,7 @@ func (w *Wrapper) DeployStack() error {
 	if err != nil {
 		return err
 	}
-	_, err = w.execSlsCmd(w.yamlDirPath, "deploy", "--aws-s3-accelerate")
+	_, err = w.execSlsCmd(w.yamlDirPath, "deploy", "--no-aws-s3-accelerate")
 	return err
 }
 
