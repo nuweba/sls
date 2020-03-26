@@ -62,8 +62,6 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 		return nil, err
 	}
 
-	stack.Functions = functions
-
 	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, Opts: make(map[string]string)}, nil
 }
 
@@ -164,10 +162,11 @@ func (w *Wrapper) DeployStack() error {
 	w.suffix = strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	functions := make(map[string]FunctionMeta)
-	for k, v := range stack.Functions {
+	for k, v := range w.stack.Functions {
 		v.Name = strings.Replace(v.Name, "${opt:suffix}", w.suffix, -1)
 		functions[k] = v
 	}
+	w.stack.Functions = functions
 	
 	err := w.buildJava("java8")
 	if err != nil {
