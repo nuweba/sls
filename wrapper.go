@@ -43,12 +43,13 @@ type ServiceStack struct {
 }
 
 type Wrapper struct {
-	provider    string
-	slsPath     string
-	yamlDirPath string
-	stack       *ServiceStack
-	suffix      string
-	Opts        map[string]string
+	provider      string
+	slsPath       string
+	yamlDirPath   string
+	stack         *ServiceStack
+	suffix        string
+	funcsTemplate Functions
+	Opts          map[string]string
 }
 
 func New(provider string, yamlDirPath string) (*Wrapper, error) {
@@ -62,7 +63,7 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 		return nil, err
 	}
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, Opts: make(map[string]string)}, nil
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, Opts: make(map[string]string), funcsTemplate: stack.Functions}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -162,7 +163,7 @@ func (w *Wrapper) DeployStack() error {
 	w.suffix = strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	functions := make(map[string]FunctionMeta)
-	for k, v := range w.stack.Functions {
+	for k, v := range w.funcsTemplate {
 		v.Name = strings.Replace(v.Name, "${opt:suffix}", w.suffix, -1)
 		functions[k] = v
 	}
