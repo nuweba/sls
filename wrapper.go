@@ -62,17 +62,9 @@ func New(provider string, yamlDirPath string) (*Wrapper, error) {
 		return nil, err
 	}
 
-	suffix := strconv.FormatInt(time.Now().UnixNano(), 10)
-
-	functions := make(map[string]FunctionMeta)
-	for k, v := range stack.Functions {
-		v.Name = strings.Replace(v.Name, "${opt:suffix}", suffix, -1)
-		functions[k] = v
-	}
-
 	stack.Functions = functions
 
-	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, suffix: suffix, Opts: make(map[string]string)}, nil
+	return &Wrapper{provider: provider, slsPath: path, yamlDirPath: yamlDirPath, stack: stack, Opts: make(map[string]string)}, nil
 }
 
 func getSLSPath() (string, error) {
@@ -169,6 +161,14 @@ func (w *Wrapper) execSlsCmd(funcDir string, slsCmd ...string) (string, error) {
 
 func (w *Wrapper) DeployStack() error {
 
+	w.suffix = strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	functions := make(map[string]FunctionMeta)
+	for k, v := range stack.Functions {
+		v.Name = strings.Replace(v.Name, "${opt:suffix}", w.suffix, -1)
+		functions[k] = v
+	}
+	
 	err := w.buildJava("java8")
 	if err != nil {
 		return err
